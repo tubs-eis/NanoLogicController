@@ -10,6 +10,7 @@ use std.textio.all;
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.std_logic_textio.all;
 use ieee.numeric_std.all;
 use work.nano_pkg.all;
 
@@ -43,6 +44,13 @@ architecture rtl of tb is
 
     -- Clock period constant
     constant clk_period : time := 1 ns;
+    
+    function to_string (SLV : std_logic_vector) return string is
+        variable L : LINE;
+    begin
+        write(L,SLV);
+        return L.all;
+    end function to_string;
 
 begin
 
@@ -128,6 +136,7 @@ begin
                         instr_i <= (others => '0');
                     end if;
                     instr_i(i+NANO_I_W_C-1 downto i) <= to_stdlogicvector(v);
+                    report "[IMEM] " & to_string(to_stdlogicvector(v));
                     if i = 0 then
                         wait for clk_period;
                         imem_addr_i <= std_logic_vector(unsigned(imem_addr_i) + (instr_i'length/NANO_I_W_C));
