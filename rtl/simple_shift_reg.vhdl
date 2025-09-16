@@ -16,9 +16,10 @@ entity simple_shift_reg is
         ADDR_WIDTH : natural := 4 -- 4 bits => register size = 2**4 = 16
     );
     port (
-        clk  : in std_logic;
-        en   : in std_logic; -- enable signal
-        din  : in std_logic; -- serial input
+        clk  : in  std_logic;
+        en   : in  std_logic; -- enable signal
+        din  : in  std_logic; -- serial input
+        ack  : out std_logic;
         dout : out std_logic_vector(2 ** ADDR_WIDTH - 1 downto 0) -- register output
     );
 end simple_shift_reg;
@@ -31,6 +32,7 @@ begin
     process (clk)
     begin
         if rising_edge(clk) then
+            ack <= en;
             if en = '1' then
                 reg <= reg(DATA_WIDTH - 2 downto 0) & din; -- shift left
             end if;

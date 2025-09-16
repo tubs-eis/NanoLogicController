@@ -23,7 +23,9 @@ architecture rtl of tb is
     signal clk_en                : std_logic := '1';
     signal reset_n               : std_logic := '0';
     signal reg_output            : std_logic_vector(REGISTER_ADDR_WIDTH ** 2 - 1 downto 0);
+    signal saved_ack             : std_logic;
     signal saved_output          : std_logic_vector(2 ** SIMPLE_SHIFT_ADDR_WIDTH - 1 downto 0);
+    signal sleep                 : std_logic;
     signal wake_i                : std_logic := '0';
     signal stream_bit_i          : std_logic := '0';
     signal stream_bit_ready_i    : std_logic := '0';
@@ -34,6 +36,10 @@ architecture rtl of tb is
     signal imem_we_i             : std_logic := '0';
     signal imem_addr_i           : std_logic_vector(NANO_I_ADR_W_C - 1 downto 0);
     signal instr_i               : std_logic_vector(2*NANO_I_W_C - 1 downto 0);
+    
+    -- Output checking signals
+    signal checkval              : std_logic;
+    signal checkack              : std_logic;
 
     -- Clock period constant
     constant clk_period : time := 1 ns;
@@ -48,7 +54,9 @@ begin
             clk                   => clk,
             reset_n               => reset_n,
             reg_output            => reg_output,
+            saved_ack             => saved_ack,
             saved_output          => saved_output,
+            sleep_o               => sleep,
             -- New signals
             wake_i                => wake_i,
             imem_we_i             => imem_we_i,
@@ -71,10 +79,34 @@ begin
         end loop;
         wait;
     end process;
-    stimulus : process
-        file f     : text open read_mode is "result.mem";
+    
+    outcheck : process
+        file f     : text open read_mode is "out.mem";
         variable l : line;
-        variable i : natural := NANO_I_W_C;
+        variable v : bit;
+        variable g : boolean;
+    begin
+        -- Read in output check values
+        while not endfile(f) loop
+            readline(f, l);
+            g := true;
+            while g loop
+                read(l, v, g);
+                if g then
+                    checkval <= to_stdulogic(v);
+                    wait until checkack'event and checkack = '1';
+                end if;
+            end loop; --g
+        end loop;
+        wait until checkack'event and checkack = '1';
+        report "[FAILURE] No more out.mem check values, simulation fails." severity failure;
+        wait;
+    end process;
+    
+    stimulus : process
+        file f     : text open read_mode is "code.mem";
+        variable l : line;
+        variable i : natural;
         variable v : bit_vector(NANO_I_W_C-1 downto 0);
         variable g : boolean;
     begin
@@ -82,8 +114,10 @@ begin
         reset_n <= '0';
         imem_addr_i <= (others => '0');
         imem_we_i   <= '1';
+        checkack <= '0';
         
         -- Read in instruction memory image
+        i := NANO_I_W_C;
         while not endfile(f) loop
             readline(f, l);
             g := true;
@@ -100,16 +134,27 @@ begin
                     end if;
                     i := (i + NANO_I_W_C) mod instr_i'length;
                 end if;
-            end loop;
+            end loop; --g
         end loop;
         wait for clk_period;
         imem_we_i <= '0';
         wait for clk_period;
         
+        -- Program execution (until SLEEP instruction)
         reset_n <= '1'; -- Deassert reset
-        wait for clk_period * 300; -- Wait for 300 clock cycles
+        while sleep = '0' loop
+            if saved_ack = '1' then
+                report "[OUT] " & std_logic'image(saved_output(0)) & ", [CHECKVAL] " & std_logic'image(checkval);
+                assert saved_output(0) = checkval;
+                checkack <= '1';
+            end if;
+            wait for clk_period;
+            checkack <= '0';
+        end loop;
         
+        -- End simulation by stopping clock events
         clk_en  <= '0';
+        report "[SLEEP] Bye...";
         wait;
     end process;
 end architecture rtl;

@@ -26,6 +26,7 @@ entity nano_ctrl is
     parallel_data_ready_i : in  std_logic;
     parallel_data_ack_o   : out std_logic;
     memory_read_data_i    : in  std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+    sleep_o               : out std_logic;
     cw_o                  : out std_logic_vector(CW_WIDTH - 1 downto 0) -- Datapath Control Word
   );
 end entity nano_ctrl;
@@ -211,6 +212,7 @@ begin
         end case;
     end case;
   end process comb;
+  sleep_o             <= is_sleeping;
   cw_o                <= cw;
   stream_bit_ack_o    <= stream_bit_ack;
   parallel_data_ack_o <= parallel_data_ack;

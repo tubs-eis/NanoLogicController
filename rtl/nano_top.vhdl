@@ -17,7 +17,9 @@ entity nano_top is
     clk                   : in  std_logic;
     reset_n               : in  std_logic;
     reg_output            : out std_logic_vector(REGISTER_WIDTH - 1 downto 0);
+    saved_ack             : out std_logic;
     saved_output          : out std_logic_vector(2 ** SIMPLE_SHIFT_ADDR_WIDTH - 1 downto 0);
+    sleep_o               : out std_logic;
     wake_i                : in  std_logic;
     imem_we_i             : in  std_logic;
     imem_addr_i           : in  std_logic_vector(NANO_I_ADR_W_C - 1 downto 0);
@@ -72,6 +74,7 @@ begin
       clk          => clk,
       cw           => cw,
       reg_output   => reg_output_int,
+      saved_ack    => saved_ack,
       saved_output => saved_output
     );
   -- Instance of nano_imem
@@ -96,6 +99,7 @@ begin
       clk_i                 => clk,
       rst_n_i               => reset_n,
       instr_i               => instr_out,
+      sleep_o               => sleep_o,
       cw_o                  => cw,
       wake_i                => wake_i,
       wake_addr_i           => wake_addr(NANO_I_ADR_W_C - 1 downto 0),

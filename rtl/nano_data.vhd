@@ -23,6 +23,7 @@ entity nano_data is
         clk          : in  std_logic;
         cw           : in  std_logic_vector(CW_WIDTH - 1 downto 0);
         reg_output   : out std_logic_vector(register_width - 1 downto 0);
+        saved_ack    : out std_logic;
         saved_output : out std_logic_vector(2 ** simple_shift_addr_width - 1 downto 0)
     );
 end nano_data;
@@ -56,6 +57,7 @@ begin
             clk  => clk,
             en   => enable_shift,
             din  => top_of_stack,
+            ack  => saved_ack,
             dout => saved_dout
         );
     temp_reg_inst: entity work.temp_bit_reg_file
