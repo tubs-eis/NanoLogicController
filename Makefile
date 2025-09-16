@@ -7,9 +7,10 @@
 ## https://opensource.org/licenses/MIT.
 
 
-.PHONY: sim wave clean
+.PHONY: codegen sim wave clean
 
-TB = tb
+NETLIST ?= sample_design_orig
+TB      ?= tb
 
 ## target sources
 VHDL_SRC_TOP_LEVEL = \
@@ -32,6 +33,11 @@ VHDL_SRC_WORK = \
   ../rtl/nano_top.vhdl \
   ../sim/vhdl/tb.vhdl
 
+## code generation toolchain (should be in PATH variable)
+YOSYS    = yosys
+
+## YoSys translation commands
+YOSYSCMD = synth; abc -lut 4; opt; techmap -map yosys/lut_map.v; opt
 
 ## simulation toolchain (should be in PATH variable)
 GHDL     = ghdl
@@ -42,6 +48,12 @@ GHDLFLAGS = --warn-no-binding -C --ieee=synopsys
 
 ## misc tools
 RM = rm -rf
+
+## code generation targets
+codegen: codegen/$(NETLIST).v
+
+codegen/%.v: indata/%.v
+	$(YOSYS) -p "read_verilog $^; $(YOSYSCMD); write_verilog -noattr $@"
 
 ## simulation targets
 sim:
@@ -55,5 +67,6 @@ wave:
 	$(GTKW) sim/$(TB).vcd.gz
 
 clean:
+	$(RM) codegen/$(NETLIST).v
 	$(RM) sim/*.cf
 	$(RM) sim/*.vcd.gz
