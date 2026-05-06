@@ -7,9 +7,13 @@
 ## https://opensource.org/licenses/MIT.
 
 
-.PHONY: sim wave clean
+.PHONY: sim wave yosys clean
 
-TB = tb
+DESIGN ?= s15850
+
+# Variables
+TB           = tb
+YOSYS_SCRIPT = lut_synth.ys
 
 ## target sources
 VHDL_SRC_TOP_LEVEL = \
@@ -33,15 +37,18 @@ VHDL_SRC_WORK = \
   ../sim/vhdl/tb.vhdl
 
 
-## simulation toolchain (should be in PATH variable)
+## toolchain (should be in PATH variable)
 GHDL     = ghdl
 GTKW     = gtkwave
+YOSYS    = yosys
 
 ## GHDL flags
 GHDLFLAGS = --warn-no-binding -C --ieee=synopsys
 
 ## misc tools
+CP = cp -f
 RM = rm -rf
+
 
 ## simulation targets
 sim:
@@ -54,6 +61,16 @@ sim:
 wave:
 	$(GTKW) sim/$(TB).vcd.gz
 
+
+# YoSys targets
+yosys:
+	cd yosys_flow; \
+	$(CP) $(DESIGN).v sample_design.v; \
+	$(YOSYS) -s $(YOSYS_SCRIPT); \
+	cd ..
+
 clean:
 	$(RM) sim/*.cf
 	$(RM) sim/*.vcd.gz
+	$(RM) yosys_flow/sample_design.v
+	$(RM) yosys_flow/synth.v

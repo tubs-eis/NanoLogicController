@@ -1,0 +1,32 @@
+## Copyright (c) 2025 Chair for Chip Design for Embedded Computing,
+##                    Technische Universitaet Braunschweig, Germany
+##                    www.tu-braunschweig.de/en/eis
+##
+## Use of this source code is governed by an MIT-style
+## license that can be found in the LICENSE file or at
+## https://opensource.org/licenses/MIT.
+
+
+# Read design input
+read_verilog sample_design.v
+flatten
+# Map to yosys IL (logic gates)
+synth
+
+# remove enable/reset from FF created by synth
+dffunmap -ce-only
+
+# Use abc to map to LUTs with a maximum of 4 inputs
+opt -noff
+abc -lut 4
+opt -noff
+
+# (Optional) Replace lut cells with BlackBox LUT
+techmap -map lut_map.v
+opt -noff
+
+# Write result as verilog netlist
+write_verilog -noattr -simple-lhs synth.v
+
+# (Optional) render resulting netlist as graph
+# show
