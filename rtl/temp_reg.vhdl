@@ -26,6 +26,7 @@ entity temp_bit_reg_file is
         rw   : in  std_logic; -- '0' = read, '1' = write
         addr : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
         din  : in  std_logic; -- 1-bit input
+        copy : in  std_logic; -- 1-bit input
         dout : out std_logic  -- 1-bit output
     );
 end temp_bit_reg_file;
@@ -39,11 +40,17 @@ begin
     process (clk)
     begin
         if rising_edge(clk) then
-            for i in 0 to REG_COUNT-1 loop
-                if wen(i) = '1' then
-                    reg_file(i) <= din; -- write bit
-                end if;
-            end loop; --i
+            if copy ='1' then
+                for i in 0 to (REG_COUNT-2)/2 loop
+                    reg_file(i*2) <= reg_file(i*2+1);
+                end loop;
+            else 
+                for i in 0 to REG_COUNT-1 loop
+                    if wen(i) = '1' then
+                        reg_file(i) <= din; -- write bit
+                    end if;
+                end loop; --i
+            end if;
         end if;
     end process;
 

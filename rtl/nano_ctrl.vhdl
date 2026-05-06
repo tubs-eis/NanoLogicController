@@ -18,7 +18,7 @@ entity nano_ctrl is
     rst_n_i               : in  std_logic;
     instr_i               : in  std_logic_vector(NANO_I_W_C - 1 downto 0);
     wake_i                : in  std_logic;
-    wake_addr_i           : in  std_logic_vector(NANO_I_ADR_W_C - 1 downto 0);
+    wake_ack_o            : out std_logic;
     stream_bit_i          : in  std_logic;
     stream_bit_ready_i    : in  std_logic;
     stream_bit_ack_o      : out std_logic;
@@ -42,11 +42,13 @@ architecture edge of nano_ctrl is
   signal counter           : std_logic_vector(COUNTER_WIDTH - 1 downto 0);  -- counts the cycles since fetching the intructions
   signal first_instr_flag  : std_logic;                                     -- indicates that this is the first cycle after a reset
   signal is_sleeping       : std_logic;                                     -- indicates processor is sleeping now
+  signal wake_ack          :std_logic;                                      -- indicates processor has waken up
   signal stream_bit_ack    : std_logic;                                     -- acknowledges streambit was read
   signal parallel_data_ack : std_logic;                                     -- acknowledges parallel data was read
   signal lut_truth_table   : std_logic_vector(OPERANDS_WIDTH - 1 downto 0);
+  signal wake_addr         : std_logic_vector(NANO_I_ADR_W_C - 1 downto 0); -- address to continue from after EOC
   -- Control State
-  type ctrl_state_t is (FETCH, REGFETCH, EXECUTE);
+  type ctrl_state_t is (REGFETCH, EXECUTE);
   signal state : ctrl_state_t;
   -- Control Logic
   signal cw : std_logic_vector(CW_WIDTH - 1 downto 0);
@@ -57,40 +59,14 @@ begin
     if rst_n_i = '0' then
       -- Reset necessary registers and state
       pc               <= (others => '0');
+      ir               <= (others => '0');
       first_instr_flag <= '1';
-      state            <= FETCH;
+      state            <= EXECUTE;
       is_sleeping      <= '0';
+      wake_ack         <= '0';
     elsif rising_edge(clk_i) then
       case state is
         --
-        when FETCH =>
-          if is_sleeping = '1' then
-            pc               <= wake_addr_i;
-            state            <= FETCH;
-            first_instr_flag <= '1';
-            is_sleeping      <= not wake_i;
-          else
-            pc <= std_logic_vector(unsigned(pc) + 1);
-            if first_instr_flag = '1' then -- this is the first cycle we only neeed to delay the whole process a cycle to wait for instruction to be read
-              state            <= FETCH;
-              first_instr_flag <= '0';
-            else
-              ir            <= instr_i(3 downto 0);
-              lut_size_flag <= instr_i(3);
-              case instr_i(3 downto 0) is --current instruction
-                when OP_LUT_2 | OP_LUT_3 | OP_LUT_4 | OP_LD | OP_ST | OP_MEM_LD | OP_MEM_ST =>
-                  state       <= REGFETCH;
-                when OP_SLEEP =>
-                  state       <= FETCH;
-                  is_sleeping <= '1';
-                when OP_NOP =>
-                  state       <= FETCH;
-                when others =>
-                  state       <= EXECUTE;
-              end case;
-              counter <= (0 => '1', others => '0');
-            end if;
-          end if;
         when REGFETCH =>
           pc      <= std_logic_vector(unsigned(pc) + 1);
           counter <= counter(counter'length-2 downto 0) & '0';
@@ -111,29 +87,58 @@ begin
             when OP_LUT_2 =>
               state <= EXECUTE;
             when OP_LD | OP_ST =>
-              if counter((TEMP_REG_ADDR_WIDTH / NANO_I_W_C) - 1) = '1' then
+              if counter(((TEMP_REG_ADDR_WIDTH + NANO_I_W_C - 1)/ NANO_I_W_C) - 1) = '1' then
                 state <= EXECUTE;
               end if;
             when OP_MEM_LD | OP_MEM_ST =>
-              if counter((NANO_D_ADR_W_C / NANO_I_W_C) - 1) = '1' then
+              if counter(((NANO_D_ADR_W_C + NANO_I_W_C - 1) / NANO_I_W_C) - 1) = '1' then
                 state <= EXECUTE;
+              end if;
+            when OP_EOC =>
+              if counter(((NANO_I_ADR_W_C + NANO_I_W_C - 1) / NANO_I_W_C) - 1) = '1' then
+                state <= EXECUTE;
+                is_sleeping <= '1';
               end if;
             when others =>
           end case;
         when EXECUTE =>
-          case ir is
-            when OP_LUT_3 | OP_LUT_2 | OP_LUT_4 =>
-              state          <= FETCH;
-              saved_operands <= cw(CW_LUT_DATA + 2 ** LUT_ADDR_WIDTH - 1 downto CW_LUT_DATA);
-              saved_stack_op <= cw(CW_STACK_OP + STACK_I_W_C - 1 downto CW_STACK_OP);
-            when OP_LUTI_0 | OP_LUTI_1 | OP_LD | OP_ST | OP_MEM_LD | OP_MEM_ST | OP_LUTR | OP_SAVE =>
-              state          <= FETCH;
-            when OP_LOAD_PLL | OP_LOAD_STR =>
-              if (stream_bit_ack = '1' or parallel_data_ack = '1') then
-                state <= FETCH;
+          if is_sleeping = '1' then
+            pc               <= operands(NANO_I_ADR_W_C - 1 downto 0);
+            state            <= EXECUTE;
+            first_instr_flag <= '1';
+            is_sleeping      <= not wake_i;
+            wake_ack         <= wake_i;
+          else
+            wake_ack <= '0';
+            if first_instr_flag = '1' then -- this is the first cycle: we only need to delay the whole process a cycle to wait for instruction to be read
+              state            <= EXECUTE;
+              first_instr_flag <= '0';
+              pc               <= std_logic_vector(unsigned(pc) + 1);
+            else
+              if not (ir = OP_LOAD_PLL or ir = OP_LOAD_STR) or (stream_bit_ack = '1' or parallel_data_ack = '1') then
+                pc            <= std_logic_vector(unsigned(pc) + 1);
+                ir            <= instr_i(3 downto 0);
+                lut_size_flag <= instr_i(3);
+                counter       <= (0 => '1', others => '0');
+
+                case instr_i(3 downto 0) is --current instruction
+                  when OP_LUT_2 | OP_LUT_3 | OP_LUT_4 | OP_LD | OP_ST | OP_MEM_LD | OP_MEM_ST | OP_EOC =>
+                    state <= REGFETCH;
+                  when OP_NOP =>
+                    state <= EXECUTE;
+                  when others =>
+                    state <= EXECUTE;
+                end case;
+                
+                case ir is
+                  when OP_LUT_3 | OP_LUT_2 | OP_LUT_4 =>
+                    saved_operands <= cw(CW_LUT_DATA + 2 ** LUT_ADDR_WIDTH - 1 downto CW_LUT_DATA);
+                    saved_stack_op <= cw(CW_STACK_OP + STACK_I_W_C - 1 downto CW_STACK_OP);
+                  when others =>
+                end case;
               end if;
-            when others =>
-          end case;
+            end if;
+          end if;
       end case;
     end if;
   end process seq;
@@ -142,23 +147,23 @@ begin
   begin
     cw <= (others => '-');
     cw(CW_STACK_OP + STACK_I_W_C - 1 downto CW_STACK_OP) <= OP_STACK_NOP;
-    cw(CW_IMEM_WE)     <= '0';
-    cw(CW_IMEM_OE)     <= '0';
+    cw(CW_IMEM_WE)       <= '0';
+    cw(CW_IMEM_OE)       <= '0';
     cw(CW_IMEM_ADDR + NANO_I_ADR_W_C - 1 downto CW_IMEM_ADDR) <= pc;
-    cw(CW_DMEM_OE)     <= '0';
-    cw(CW_DMEM_WE)     <= '0';
-    cw(CW_SAVE_TOP)    <= '0';
-    stream_bit_ack     <= '0';
-    parallel_data_ack  <= '0';
-    cw(CW_TEMP_REG_RW) <= '0';
-    cw(CW_TEMP_REG_EN) <= '0';
+    cw(CW_DMEM_OE)       <= '0';
+    cw(CW_DMEM_WE)       <= '0';
+    cw(CW_SAVE_TOP)      <= '0';
+    stream_bit_ack       <= '0';
+    parallel_data_ack    <= '0';
+    cw(CW_TEMP_REG_RW)   <= '0';
+    cw(CW_TEMP_REG_EN)   <= '0';
+    cw(CW_TEMP_REG_COPY) <= '0';
 
     case state is
-      when FETCH =>
-        cw(CW_IMEM_OE) <= '1';
       when REGFETCH =>
         cw(CW_IMEM_OE) <= '1';
       when EXECUTE =>
+        cw(CW_IMEM_OE) <= '1';
         case ir is
           when OP_LUTI_0 | OP_LUTI_1 =>
             cw(CW_STACK_OP + STACK_I_W_C - 1 downto CW_STACK_OP)         <= OP_STACK_PUSH;
@@ -208,6 +213,8 @@ begin
           when OP_SAVE =>
             cw(CW_STACK_OP + STACK_I_W_C - 1 downto CW_STACK_OP) <= OP_STACK_POP;
             cw(CW_SAVE_TOP) <= '1'; 
+          when OP_EOC =>
+            cw(CW_TEMP_REG_COPY) <= '1';
           when others =>
         end case;
     end case;
@@ -216,5 +223,6 @@ begin
   cw_o                <= cw;
   stream_bit_ack_o    <= stream_bit_ack;
   parallel_data_ack_o <= parallel_data_ack;
+  wake_ack_o <= wake_ack;
 end architecture;
 

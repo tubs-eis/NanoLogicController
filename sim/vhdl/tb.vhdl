@@ -23,15 +23,16 @@ architecture rtl of tb is
     signal clk                   : std_logic := '0';
     signal clk_en                : std_logic := '1';
     signal reset_n               : std_logic := '0';
-    signal reg_output            : std_logic_vector(REGISTER_ADDR_WIDTH ** 2 - 1 downto 0);
+    signal reg_output            : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
     signal saved_ack             : std_logic;
     signal saved_output          : std_logic_vector(2 ** SIMPLE_SHIFT_ADDR_WIDTH - 1 downto 0);
     signal sleep                 : std_logic;
     signal wake_i                : std_logic := '0';
+    signal wake_ack_o            : std_logic;
     signal stream_bit_i          : std_logic := '0';
     signal stream_bit_ready_i    : std_logic := '0';
     signal stream_bit_ack_o      : std_logic;
-    signal parallel_data_i       : std_logic_vector(2 ** REGISTER_ADDR_WIDTH - 1 downto 0) := (others => '0');
+    signal parallel_data_i       : std_logic_vector(REGISTER_WIDTH - 1 downto 0) := (others => '0');
     signal parallel_data_ready_i : std_logic := '0';
     signal parallel_data_ack_o   : std_logic;
     signal imem_we_i             : std_logic := '0';
@@ -67,6 +68,7 @@ begin
             sleep_o               => sleep,
             -- New signals
             wake_i                => wake_i,
+            wake_ack_o            => wake_ack_o,
             imem_we_i             => imem_we_i,
             imem_addr_i           => imem_addr_i,
             instr_i               => instr_i,

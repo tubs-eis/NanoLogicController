@@ -48,7 +48,7 @@ sim:
 	cd sim; \
 	$(GHDL) -a $(GHDLFLAGS) --work=top_level $(VHDL_SRC_TOP_LEVEL); \
 	$(GHDL) -a $(GHDLFLAGS) $(VHDL_SRC_WORK); \
-	$(GHDL) -r $(GHDLFLAGS) $(TB) --vcdgz=$(TB).vcd.gz; \
+	$(GHDL) -r $(GHDLFLAGS) $(TB) --max-stack-alloc=256 --vcdgz=$(TB).vcd.gz; \
 	cd ..;
 
 wave:

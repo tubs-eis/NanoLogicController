@@ -32,7 +32,7 @@ end entity shift_register;
 architecture rtl of shift_register is
 
     -- Internal register signal
-    signal reg : std_logic_vector(DATA_WIDTH - 1 downto 0) := (others => '0');
+    signal reg : std_logic_vector(DATA_WIDTH - 1 downto 0) := (others => 'L');
 
 begin
 
@@ -55,7 +55,7 @@ begin
                     when OP_SHIFTREG_SHIFT_RIGHT =>
                         if i = DATA_WIDTH - 1 then
                             -- For a right shift, the MSB is set to '0'
-                            reg(i) <= '0';
+                            reg(i) <= 'L';
                         else
                             reg(i) <= reg(i + 1);
                         end if;
@@ -65,14 +65,14 @@ begin
                         if (i + 1) < DATA_WIDTH then
                             reg(i) <= reg(i + 1);
                         else
-                            reg(i) <= '0';
+                            reg(i) <= 'L';
                         end if;
                     when OP_SHIFTREG_LUT_3 =>
                         -- Bit i takes the value of bit i+2 if in range; otherwise '0'
                         if (i + 2) < DATA_WIDTH then
                             reg(i) <= reg(i + 2);
                         else
-                            reg(i) <= '0';
+                            reg(i) <= 'L';
                         end if;
 
                     when OP_SHIFTREG_LUT_4 =>
@@ -80,7 +80,7 @@ begin
                         if (i + 3) < DATA_WIDTH then
                             reg(i) <= reg(i + 3);
                         else
-                            reg(i) <= '0';
+                            reg(i) <= 'L';
                         end if;
                     when others =>
                         -- Default: hold the current value

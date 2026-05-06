@@ -45,6 +45,7 @@ architecture behavioral of nano_data is
     signal rw_temp_reg          : std_logic;
     signal rw_bit_out           : std_logic;
     signal rw_bit_in            : std_logic;
+    signal temp_reg_copy        : std_logic;
     signal top_of_stack         : std_logic;
     signal saved_dout           : std_logic_vector(2 ** simple_shift_addr_width - 1 downto 0);
     signal acc_output_mux       : std_logic;
@@ -71,6 +72,7 @@ begin
         rw   => rw_temp_reg,      -- '1' = write, '0' = read
         addr => address_temp_reg, -- address for read/write
         din  => rw_bit_in,        -- input bit
+        copy => temp_reg_copy,
         dout => rw_bit_out        -- output bit
     );
 
@@ -108,6 +110,7 @@ begin
     enable_shift     <= cw(CW_SAVE_TOP);
     enable_temp_reg  <= cw(CW_TEMP_REG_EN);
     rw_temp_reg      <= cw(CW_TEMP_REG_RW);
+    temp_reg_copy    <= cw(CW_TEMP_REG_COPY);
     address_temp_reg <= cw(CW_TEMP_REG_ADDR + TEMP_REG_ADDR_WIDTH - 1 downto CW_TEMP_REG_ADDR);
     top_of_stack     <= register_out_intern(0);
 end behavioral;

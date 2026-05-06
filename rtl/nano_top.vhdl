@@ -21,6 +21,7 @@ entity nano_top is
     saved_output          : out std_logic_vector(2 ** SIMPLE_SHIFT_ADDR_WIDTH - 1 downto 0);
     sleep_o               : out std_logic;
     wake_i                : in  std_logic;
+    wake_ack_o            : out std_logic;
     imem_we_i             : in  std_logic;
     imem_addr_i           : in  std_logic_vector(NANO_I_ADR_W_C - 1 downto 0);
     instr_i               : in  std_logic_vector(2*NANO_I_W_C - 1 downto 0);
@@ -48,7 +49,6 @@ architecture rtl of nano_top is
   signal dmem_oe                  : std_logic;
   signal dmem_we                  : std_logic;
   signal dmem_addr                : std_logic_vector(NANO_D_ADR_W_C - 1 downto 0);
-  signal wake_addr                : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
   signal reg_output_int           : std_logic_vector(REGISTER_WIDTH - 1 downto 0);
 begin
 
@@ -102,7 +102,7 @@ begin
       sleep_o               => sleep_o,
       cw_o                  => cw,
       wake_i                => wake_i,
-      wake_addr_i           => wake_addr(NANO_I_ADR_W_C - 1 downto 0),
+      wake_ack_o            => wake_ack_o,
       stream_bit_i          => stream_bit_i,
       stream_bit_ready_i    => stream_bit_ready_i,
       stream_bit_ack_o      => stream_bit_ack_o,
@@ -125,7 +125,7 @@ begin
       addr_i => dmem_addr,
       data_i => reg_output_int,
       data_o => memory_read_data,
-      func_o => wake_addr
+      func_o => open
     );
 
 end architecture;
