@@ -17,6 +17,7 @@ Due to stack-based data organization inside the data path, a very compact 4-bit-
 - [Repository Structure](#Repository-Structure)
 - [Installation](#Installation)
 - [Minimum Application Example](#Minimum-Application-Example)
+- [Compiler Tool Flow](#Compiler-Tool-Flow)
 
 [Contributors](#Contributors)
 
