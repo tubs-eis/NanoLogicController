@@ -26,15 +26,18 @@ Due to stack-based data organization inside the data path, a very compact 4-bit-
 
 ## Getting started
 
-This repository contains the *open-source RTL implementation* of the NanoLogicController architecture, and a *simulation environment* for analyzing and verifying the functionality using a commented minimum application example.
+This repository contains the *open-source RTL implementation* of the NanoLogicController architecture, a minimum *simulation environment* for analyzing and verifying the functionality using a commented minimum application example of a 3-bit adder netlist, and the *tool flow* for compiling Verilog gate-level netlists to NanoLogicController program code.
 The simulation environment uses the open-source VHDL simulator **GHDL**.
+The compiler tool flow is based on the open-source logic synthesis tool **YoSys**, the open-source Verilog parser **PyVerilog** and a custom set of Python scripts.
 
 ### Repository Structure
 
-| Directory | Description |
-|-----------|-------------|
-| `rtl` | Contains the VHDL source code of the open-source RTL implementation of the NanoLogicController architecture. |
-| `sim` | Simulation environment using GHDL. Contains a commented minimum application example. |
+| Directory    | Description |
+|--------------|-------------|
+| `compiler`   | Contains the Python scripts of the compiler tool, and serves as a working directory for it. |
+| `rtl`        | Contains the VHDL source code of the open-source RTL implementation of the NanoLogicController architecture. |
+| `sim`        | Simulation environment using GHDL. Contains a commented minimum application example. |
+| `yosys_flow` | Directory for YoSys synthesis flow to convert an input netlist in Verilog to a LUT-based representation in Verilog. |
 
 ### Installation
 
@@ -126,9 +129,33 @@ cd ..;
 ../sim/vhdl/tb.vhdl:166:9:@92ns:(report note): [SLEEP] Bye...
 ```
 
+### Compiler Tool Flow
+
+Run the different scripts of the compiler tool flow in correct order using:
+
+```bash
+make yosys gen_inputs run dut ghdl compare DESIGN="s15850"
+```
+
+For `DESIGN`, following ISCAS circuits are provided as Verilog input within the repo ( taken from https://github.com/santoshsmalagi/Benchmarks ):
+
+- c3540
+- c5315
+- c6288
+- c7552
+- s5378
+- s9234
+- s13207
+- s15850
+
+In the compiler flow, these should pass the final `compare` test between original netlist simulation (`dut`) and execution of the compiled *NanoLogicController* program code (`ghdl`) with random input stimuli.
+Final result metrics of the compiled code can be found in `compiler/result_metrics.json`.
+
 ## Contributors
 
-Coming soon.
+- Moritz Weißbrich (TU Braunschweig): General conception and development, project maintainer
+- Mohamed Wassim Chebili (TU Braunschweig): Architecture & compiler development
+- Guillermo Payá-Vayá (TU Braunschweig): General conception and supervision
 
 ## License
 
