@@ -1,0 +1,9 @@
+__pycache__/
+*.mem
+input*.txt
+*.json
+output*.txt
+*.out
+parsetab.py
+*.vcd.gz
+testbench.v
