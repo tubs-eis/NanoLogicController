@@ -10,6 +10,11 @@ In order to solve these issues, a manycore system based on specialized logic emu
 The architecture features a minimal control path and a lookup-table-based data path design, specialized for the evaluation of logic functions in netlists of digital circuits, which are converted into program code via a Verilog netlist parser and a custom code generation tool.
 Due to stack-based data organization inside the data path, a very compact 4-bit-wide instruction-set and instruction encoding can be exploited to improve program code density and reduce instruction memory requirements. 
 
+The NanoLogicController architecture is described in the following paper. If you are using NanoLogicController, please cite it as follows:
+>Weißbrich, M., Chebili, M. W., Payá-Vayá, G. (2026).
+>**NanoLogicController: A Minimal Open-Source ASIP for Accelerated Gate-Level Netlist Emulation**.
+>In: *2026 IEEE 37th International Conference on Application-specific Systems, Architectures and Processors (ASAP)*, London, United Kingdom. https://doi.org/10.1109/asap71856.2026.00041
+
 ## Table of Contents
 
 [Getting started](#Getting-started)
@@ -164,4 +169,7 @@ This open-source project is distributed under the MIT license.
 
 ## Citation
 
-Coming soon.
+The NanoLogicController architecture is described in the following paper. If you are using NanoLogicController, please cite it as follows:
+>Weißbrich, M., Chebili, M. W., Payá-Vayá, G. (2026).
+>**NanoLogicController: A Minimal Open-Source ASIP for Accelerated Gate-Level Netlist Emulation**.
+>In: *2026 IEEE 37th International Conference on Application-specific Systems, Architectures and Processors (ASAP)*, London, United Kingdom. https://doi.org/10.1109/asap71856.2026.00041
